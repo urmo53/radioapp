@@ -25,7 +25,6 @@ const stations = [
 
 function cleanTitle(raw) {
   if (!raw) return "";
-
   return raw
     .replace(/–|—/g, "-")
     .replace(/\(.*?\)|\[.*?\]/g, "")
@@ -47,7 +46,6 @@ async function getITunes(track) {
   try {
     const { artist, song } = parseTrack(track);
     const term = `${artist} ${song}`.trim();
-
     if (!term) return null;
 
     const res = await axios.get(
@@ -78,9 +76,7 @@ async function getR2WebsiteImage() {
   try {
     const res = await axios.get("https://r2.err.ee", {
       timeout: 8000,
-      headers: {
-        "User-Agent": "Mozilla/5.0"
-      }
+      headers: { "User-Agent": "Mozilla/5.0" }
     });
 
     const $ = cheerio.load(res.data);
@@ -92,15 +88,12 @@ async function getR2WebsiteImage() {
 
     if (!img) return null;
 
-    if (img.startsWith("//")) {
-      img = "https:" + img;
-    } else if (img.startsWith("/")) {
-      img = "https://r2.err.ee" + img;
-    }
+    if (img.startsWith("//")) img = "https:" + img;
+    if (img.startsWith("/")) img = "https://r2.err.ee" + img;
 
     return img;
   } catch (e) {
-    console.log("R2 website image error:", e.message);
+    console.log("R2 image error:", e.message);
     return null;
   }
 }
@@ -108,6 +101,7 @@ async function getR2WebsiteImage() {
 async function getArtwork(title, station) {
   const normalizedTitle = (title || "").toLowerCase();
 
+  // 🔴 UUDISED ERAND
   if (
     (station.name === "R2" || station.name === "Raadio Tallinn") &&
     normalizedTitle.includes("uudised")
@@ -163,5 +157,5 @@ app.get("/api/stations", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log("http://localhost:" + PORT);
+  console.log("🚀 Server töötab: http://localhost:" + PORT);
 });

@@ -9,30 +9,28 @@
 
 <style>
 :root {
-  --bg: #f5f5f7;
-  --bg-secondary: #ffffffcc;
-  --card: rgba(255, 255, 255, 0.72);
-  --card-border: rgba(255, 255, 255, 0.7);
+  --bg: linear-gradient(180deg, #f8f9fb 0%, #eef2f7 100%);
+  --card: rgba(255, 255, 255, 0.78);
+  --card-border: rgba(255, 255, 255, 0.85);
   --text: #111111;
-  --text-secondary: #6e6e73;
-  --accent: #fa233b;
-  --accent-hover: #d91e33;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  --shadow-strong: 0 18px 40px rgba(0, 0, 0, 0.14);
+  --text-secondary: #5f6672;
+  --accent: #0a84ff;
+  --accent-hover: #0066d6;
+  --shadow: 0 10px 30px rgba(18, 34, 66, 0.08);
+  --shadow-strong: 0 18px 40px rgba(18, 34, 66, 0.14);
   --blur: blur(18px);
 }
 
 body.dark {
-  --bg: linear-gradient(180deg, #101113 0%, #17181c 100%);
-  --bg-secondary: rgba(28, 28, 30, 0.75);
-  --card: rgba(28, 28, 30, 0.72);
-  --card-border: rgba(255, 255, 255, 0.06);
-  --text: #f5f5f7;
-  --text-secondary: #a1a1a6;
-  --accent: #ff375f;
-  --accent-hover: #ff1f4b;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  --shadow-strong: 0 18px 40px rgba(0, 0, 0, 0.38);
+  --bg: linear-gradient(180deg, #07111f 0%, #0b1930 35%, #102447 70%, #122a52 100%);
+  --card: rgba(10, 25, 52, 0.65);
+  --card-border: rgba(120, 170, 255, 0.10);
+  --text: #edf4ff;
+  --text-secondary: #a9bddc;
+  --accent: #4da3ff;
+  --accent-hover: #2d8eff;
+  --shadow: 0 12px 34px rgba(0, 0, 0, 0.34);
+  --shadow-strong: 0 20px 46px rgba(0, 0, 0, 0.42);
 }
 
 html, body {
@@ -52,8 +50,8 @@ body {
   min-height: 100vh;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(255, 120, 140, 0.12), transparent 30%),
-    radial-gradient(circle at top right, rgba(90, 120, 255, 0.08), transparent 28%),
+    radial-gradient(circle at top left, rgba(76, 146, 255, 0.10), transparent 28%),
+    radial-gradient(circle at top right, rgba(155, 193, 255, 0.08), transparent 26%),
     var(--bg);
   transition: background 0.35s ease, color 0.35s ease;
 }
@@ -101,6 +99,7 @@ body {
   box-shadow: var(--shadow);
   cursor: pointer;
   transition: transform 0.24s ease, box-shadow 0.24s ease, background 0.24s ease;
+  touch-action: pan-y;
 }
 
 .station:hover {
@@ -108,27 +107,16 @@ body {
   box-shadow: var(--shadow-strong);
 }
 
-.station::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.10), transparent 40%);
-  pointer-events: none;
-  opacity: 0.65;
-}
-
 .img-wrapper {
-  position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
   overflow: hidden;
   border-radius: 22px;
   background: #dcdce1;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.24);
 }
 
 body.dark .img-wrapper {
-  background: #2b2b31;
+  background: #183158;
 }
 
 .img-wrapper img {
@@ -140,8 +128,6 @@ body.dark .img-wrapper {
 
 .station-info {
   padding: 14px 6px 4px;
-  position: relative;
-  z-index: 1;
 }
 
 .station-name {
@@ -165,6 +151,7 @@ body.dark .img-wrapper {
   overflow: hidden;
 }
 
+/* DETAIL */
 .detail {
   display: none;
   max-width: 980px;
@@ -172,17 +159,58 @@ body.dark .img-wrapper {
 }
 
 .detail-shell {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: minmax(280px, 430px) minmax(280px, 1fr);
   gap: 34px;
   align-items: center;
-  background: var(--bg-secondary);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
+  padding: 24px;
+  border-radius: 34px;
   border: 1px solid var(--card-border);
   box-shadow: var(--shadow-strong);
-  border-radius: 34px;
-  padding: 24px;
+  background: rgba(255,255,255,0.18);
+  min-height: 420px;
+}
+
+.detail-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.detail-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.15);
+  filter: blur(40px) saturate(1.2) brightness(0.9);
+  opacity: 0.95;
+}
+
+.detail-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.45);
+}
+
+body.dark .detail-bg::after {
+  background: rgba(6, 16, 34, 0.55);
+}
+
+.detail-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.detail-art-wrap,
+.detail-copy {
+  position: relative;
+  z-index: 2;
 }
 
 .detail-art-wrap {
@@ -195,7 +223,7 @@ body.dark .img-wrapper {
 }
 
 body.dark .detail-art-wrap {
-  background: #2b2b31;
+  background: #163056;
 }
 
 .detail-art-wrap img {
@@ -261,7 +289,7 @@ body.dark .detail-art-wrap {
   letter-spacing: 0.06em;
   cursor: pointer;
   user-select: none;
-  box-shadow: 0 14px 26px rgba(250, 35, 59, 0.32);
+  box-shadow: 0 14px 28px rgba(13, 118, 255, 0.30);
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -301,7 +329,7 @@ audio {
   .station-info { padding: 10px 2px 2px; }
   .station-name { font-size: 15px; }
   .station-title { font-size: 12px; min-height: 32px; }
-  .detail-shell { padding: 16px; border-radius: 24px; }
+  .detail-shell { padding: 16px; border-radius: 24px; min-height: auto; }
   .detail-art-wrap { border-radius: 22px; }
   #name { font-size: 28px; }
   #title { font-size: 16px; }
@@ -324,6 +352,11 @@ audio {
 
   <div id="detail" class="detail">
     <div class="detail-shell">
+      <div class="detail-bg">
+        <img id="bgArt" alt="">
+      </div>
+      <div class="detail-overlay"></div>
+
       <div class="detail-art-wrap">
         <img id="art" alt="">
       </div>
@@ -332,7 +365,7 @@ audio {
         <div class="detail-label">Now Playing</div>
         <h2 id="name"></h2>
         <p id="title"></p>
-        <p id="playerStatus" class="player-status">Ühendan…</p>
+        <p id="playerStatus" class="player-status">Ühendab striimiga…</p>
 
         <div class="detail-actions">
           <div class="back" onclick="back()">BACK</div>
@@ -426,24 +459,26 @@ function stopRecovery() {
 }
 
 async function load() {
-  let res = await fetch("/api/stations");
-  stations = await res.json();
-
-  stations.forEach(s => cache[s.name] = s);
-
-  render();
-  updateDetail();
+  try {
+    const res = await fetch("/api/stations");
+    stations = await res.json();
+    stations.forEach(s => cache[s.name] = s);
+    render();
+    updateDetail();
+  } catch (e) {
+    console.log("Load error:", e);
+  }
 }
 
 function render() {
-  let g = document.getElementById("grid");
+  const g = document.getElementById("grid");
   g.innerHTML = "";
 
   stations.forEach(s => {
-    let d = document.createElement("div");
+    const d = document.createElement("div");
     d.className = "station";
 
-    let img = s.artwork || "/images/" + s.name.toLowerCase() + ".png";
+    const img = s.artwork || "/images/" + s.name.toLowerCase() + ".png";
 
     d.innerHTML = `
       <div class="img-wrapper">
@@ -455,7 +490,6 @@ function render() {
       </div>
     `;
 
-    d.addEventListener("pointerdown", () => openStation(s), { once: true });
     d.addEventListener("click", () => openStation(s));
     g.appendChild(d);
   });
@@ -465,7 +499,6 @@ function openStation(s) {
   const sameStation = current && current.name === s.name;
 
   current = s;
-
   document.getElementById("grid").style.display = "none";
   document.getElementById("detail").style.display = "block";
 
@@ -479,15 +512,17 @@ function openStation(s) {
 function updateDetail() {
   if (!current) return;
 
-  let s = cache[current.name];
+  const s = cache[current.name];
   if (!s) return;
 
-  let img = s.artwork || "/images/" + s.name.toLowerCase() + ".png";
+  const img = s.artwork || "/images/" + s.name.toLowerCase() + ".png";
 
-  document.getElementById("name").innerText = s.name;
-  document.getElementById("title").innerText = s.title;
+  document.getElementById("name").textContent = s.name;
+  document.getElementById("title").textContent = s.title;
   document.getElementById("art").src = img;
   document.getElementById("art").alt = s.name;
+  document.getElementById("bgArt").src = img;
+  document.getElementById("bgArt").alt = s.name;
 
   if ("mediaSession" in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -523,7 +558,7 @@ function back() {
 audio.addEventListener("playing", () => {
   reconnectAttempts = 0;
   clearReconnectTimer();
-  setStatus("Live...");
+  setStatus("Mängib live striimi");
   if ("mediaSession" in navigator && "playbackState" in navigator.mediaSession) {
     navigator.mediaSession.playbackState = "playing";
   }
