@@ -523,7 +523,7 @@ function back() {
 audio.addEventListener("playing", () => {
   reconnectAttempts = 0;
   clearReconnectTimer();
-  setStatus("Mängin live...");
+  setStatus("Live...");
   if ("mediaSession" in navigator && "playbackState" in navigator.mediaSession) {
     navigator.mediaSession.playbackState = "playing";
   }

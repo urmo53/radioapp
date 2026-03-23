@@ -9,18 +9,18 @@ app.use(express.static(path.join(__dirname, "public")));
 const PORT = process.env.PORT || 3000;
 
 const stations = [
+  { name: "R2", stream: "https://icecast.err.ee/raadio2.mp3", fallbackImage: "/images/r2.png" },
   { name: "R2AltPop", stream: "https://icecast.err.ee/r2alternatiiv.mp3", fallbackImage: "/images/r2altpop.png" },
   { name: "R2Chill", stream: "https://icecast.err.ee/r2chill.mp3", fallbackImage: "/images/r2chill.png" },
   { name: "R2Eesti", stream: "https://icecast.err.ee/r2eesti.mp3", fallbackImage: "/images/r2eesti.png" },
   { name: "R2Millenium", stream: "https://icecast.err.ee/r2music.mp3", fallbackImage: "/images/r2millenium.png" },
   { name: "R2Räp", stream: "https://icecast.err.ee/r2p.mp3", fallbackImage: "/images/r2rap.png" },
   { name: "R2Rock", stream: "https://icecast.err.ee/r2rock.mp3", fallbackImage: "/images/r2rock.png" },
+  { name: "R2Pop", stream: "https://icecast.err.ee/r2pop.mp3", fallbackImage: "/images/r2pop.png" },
   { name: "KlaraNostalgia", stream: "https://icecast.err.ee/klaranostalgia.mp3", fallbackImage: "/images/klaranostalgia.png" },
   { name: "KlaraJazz", stream: "https://icecast.err.ee/klarajazz.mp3", fallbackImage: "/images/klarajazz.png" },
   { name: "R4Retro", stream: "https://icecast.err.ee/r4retro.mp3", fallbackImage: "/images/r4retro.png" },
-  { name: "R2Pop", stream: "https://icecast.err.ee/r2pop.mp3", fallbackImage: "/images/r2pop.png" },
-  { name: "Raadio Tallinn", stream: "https://icecast.err.ee/raadiotallinn.mp3", fallbackImage: "/images/raadiotallinn.png" },
-  { name: "R2", stream: "https://icecast.err.ee/raadio2.mp3", fallbackImage: "/images/r2.png" }
+  { name: "Raadio Tallinn", stream: "https://icecast.err.ee/raadiotallinn.mp3", fallbackImage: "/images/raadiotallinn.png" }
 ];
 
 function cleanTitle(raw) {
