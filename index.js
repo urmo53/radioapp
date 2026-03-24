@@ -98,16 +98,28 @@ async function getR2WebsiteImage() {
   }
 }
 
-async function getArtwork(title, station) {
-  const normalizedTitle = (title || "").toLowerCase();
+function getForcedImage(title, station) {
+  const t = (title || "").toLowerCase();
+  const n = (station?.name || "").toLowerCase().trim();
 
-  // 🔴 UUDISED / PÄEVAKAJA ERAND
   if (
-    (station.name === "R2" || station.name === "Raadio Tallinn") &&
-    (normalizedTitle.includes("uudised") || normalizedTitle.includes("päevakaja"))
+    (n === "r2" || n === "raadio tallinn") &&
+    (t.includes("uudised") || t.includes("päevakaja"))
   ) {
     return "/images/uudised.png";
   }
+
+  if (n === "raadio tallinn") {
+    if (t.includes("bbc")) return "/images/bbc.png";
+    if (t.includes("rfi")) return "/images/rfi.png";
+  }
+
+  return null;
+}
+
+async function getArtwork(title, station) {
+  const forced = getForcedImage(title, station);
+  if (forced) return forced;
 
   let img = await getITunes(title);
   if (img) return img;
@@ -129,15 +141,23 @@ app.get("/api/stations", async (req, res) => {
       timeout: 8000
     });
 
-    const sources = ice.data.icestats.source;
+    const sources = Array.isArray(ice.data?.icestats?.source)
+      ? ice.data.icestats.source
+      : [ice.data?.icestats?.source].filter(Boolean);
 
     const data = await Promise.all(
       stations.map(async (s) => {
+        const fileName = s.stream.split("/").pop().toLowerCase();
+
         const src = sources.find((x) =>
-          x.listenurl.toLowerCase().includes(s.stream.split("/").pop())
+          (x.listenurl || "").toLowerCase().includes(fileName)
         );
 
-        const title = src?.title || "Hetkel mitte saadaval";
+        const title =
+          src?.title && String(src.title).trim()
+            ? String(src.title).trim()
+            : "Hetkel mitte saadaval";
+
         const artwork = await getArtwork(title, s);
 
         return {
