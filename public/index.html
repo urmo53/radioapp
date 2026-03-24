@@ -16,6 +16,7 @@
   --text-secondary: #5f6672;
   --accent: #0a84ff;
   --accent-hover: #0066d6;
+  --accent-shadow: rgba(13, 118, 255, 0.30);
   --shadow: 0 10px 30px rgba(18, 34, 66, 0.08);
   --shadow-strong: 0 18px 40px rgba(18, 34, 66, 0.14);
   --blur: blur(18px);
@@ -44,6 +45,7 @@ body.dark {
   --text-secondary: #a9bddc;
   --accent: #4da3ff;
   --accent-hover: #2d8eff;
+  --accent-shadow: rgba(77, 163, 255, 0.32);
   --shadow: 0 12px 34px rgba(0, 0, 0, 0.34);
   --shadow-strong: 0 20px 46px rgba(0, 0, 0, 0.42);
   --dynamic-1: rgba(77, 163, 255, 0.12);
@@ -366,7 +368,7 @@ body.dark .detail-art-wrap {
   letter-spacing: 0.06em;
   cursor: pointer;
   user-select: none;
-  box-shadow: 0 14px 28px rgba(13, 118, 255, 0.30);
+  box-shadow: 0 14px 28px var(--accent-shadow);
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -480,7 +482,7 @@ body.dark .mini-player-art {
   height: 38px;
   padding: 0 14px;
   border-radius: 999px;
-  box-shadow: 0 10px 22px rgba(13, 118, 255, 0.26);
+  box-shadow: 0 10px 22px var(--accent-shadow);
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
@@ -668,6 +670,59 @@ function applyDetailTextContrast(avgBrightness) {
   }
 }
 
+function applyDynamicAccent(r, g, b, brightness) {
+  const root = document.documentElement;
+
+  const redDominant = r > g + 25 && r > b + 25;
+  const blueDominant = b > r + 20 && b > g + 10;
+  const greenDominant = g > r + 20 && g > b + 10;
+  const veryBright = brightness > 185;
+
+  if (veryBright) {
+    if (redDominant) {
+      root.style.setProperty("--accent", "#d92c23");
+      root.style.setProperty("--accent-hover", "#b81f17");
+      root.style.setProperty("--accent-shadow", "rgba(217, 44, 35, 0.30)");
+    } else {
+      root.style.setProperty("--accent", "#0066d6");
+      root.style.setProperty("--accent-hover", "#004fb0");
+      root.style.setProperty("--accent-shadow", "rgba(0, 102, 214, 0.28)");
+    }
+    return;
+  }
+
+  if (redDominant) {
+    root.style.setProperty("--accent", "#ff453a");
+    root.style.setProperty("--accent-hover", "#e2392f");
+    root.style.setProperty("--accent-shadow", "rgba(255, 69, 58, 0.32)");
+    return;
+  }
+
+  if (blueDominant) {
+    root.style.setProperty("--accent", "#4da3ff");
+    root.style.setProperty("--accent-hover", "#2d8eff");
+    root.style.setProperty("--accent-shadow", "rgba(77, 163, 255, 0.32)");
+    return;
+  }
+
+  if (greenDominant) {
+    root.style.setProperty("--accent", "#30d158");
+    root.style.setProperty("--accent-hover", "#28b84b");
+    root.style.setProperty("--accent-shadow", "rgba(48, 209, 88, 0.30)");
+    return;
+  }
+
+  if (document.body.classList.contains("dark")) {
+    root.style.setProperty("--accent", "#64a8ff");
+    root.style.setProperty("--accent-hover", "#3e92ff");
+    root.style.setProperty("--accent-shadow", "rgba(100, 168, 255, 0.32)");
+  } else {
+    root.style.setProperty("--accent", "#0a84ff");
+    root.style.setProperty("--accent-hover", "#0066d6");
+    root.style.setProperty("--accent-shadow", "rgba(13, 118, 255, 0.30)");
+  }
+}
+
 function applyDynamicThemeFromImage(imgEl) {
   try {
     const canvas = document.createElement("canvas");
@@ -699,6 +754,8 @@ function applyDynamicThemeFromImage(imgEl) {
     b = Math.round(b / count);
 
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+    applyDynamicAccent(r, g, b, brightness);
 
     const root = document.documentElement;
     root.style.setProperty("--dynamic-1", rgbToCss(r, g, b, 0.16));
