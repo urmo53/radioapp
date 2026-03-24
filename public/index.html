@@ -614,6 +614,7 @@ function darkMode() {
   else document.body.classList.remove("dark");
 }
 darkMode();
+setInterval(darkMode, 60000);
 
 function updateScrollHeader() {
   document.body.classList.toggle("scrolled", window.scrollY > 8);
@@ -863,15 +864,26 @@ function render() {
 
     const img = s.artwork || "/images/" + s.name.toLowerCase() + ".png";
 
-    d.innerHTML = `
-      <div class="img-wrapper">
-        <img src="${img}" alt="${s.name}">
-      </div>
-      <div class="station-info">
-        <div class="station-name">${s.name}</div>
-        <div class="station-title">${s.title}</div>
-      </div>
-    `;
+    const imgWrapper = document.createElement("div");
+    imgWrapper.className = "img-wrapper";
+    const imgEl = document.createElement("img");
+    imgEl.src = img;
+    imgEl.alt = s.name;
+    imgWrapper.appendChild(imgEl);
+
+    const infoEl = document.createElement("div");
+    infoEl.className = "station-info";
+    const nameEl = document.createElement("div");
+    nameEl.className = "station-name";
+    nameEl.textContent = s.name;
+    const titleEl = document.createElement("div");
+    titleEl.className = "station-title";
+    titleEl.textContent = s.title;
+    infoEl.appendChild(nameEl);
+    infoEl.appendChild(titleEl);
+
+    d.appendChild(imgWrapper);
+    d.appendChild(infoEl);
 
     d.addEventListener("click", () => openStation(s));
     g.appendChild(d);
@@ -1000,6 +1012,20 @@ audio.addEventListener("pause", () => {
     updateMiniPlayer();
     return;
   }
+
+  // Kui leht on nähtaval ja audio pausiti väliselt (nt telefonikõne),
+  // ei proovi automaatselt taastada — kasutaja saab ise PLAY vajutada.
+  if (!document.hidden) {
+    shouldBePlaying = false;
+    setStatus("Katkestati. Vajuta PLAY jätkamiseks.");
+    if ("mediaSession" in navigator && "playbackState" in navigator.mediaSession) {
+      navigator.mediaSession.playbackState = "paused";
+    }
+    updateMiniPlayer();
+    return;
+  }
+
+  // Leht on taustal (nt ekraan lukus) — proovi taastada
   setStatus("Taasesitus peatus. Proovin taastada…");
   scheduleReconnect("Heli peatus");
   if ("mediaSession" in navigator && "playbackState" in navigator.mediaSession) {
@@ -1037,7 +1063,9 @@ window.addEventListener("pageshow", () => {
 });
 
 load();
-setInterval(load, 15000);
+setInterval(() => {
+  if (!document.hidden) load();
+}, 15000);
 </script>
 
 </body>

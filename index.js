@@ -101,10 +101,10 @@ async function getR2WebsiteImage() {
 async function getArtwork(title, station) {
   const normalizedTitle = (title || "").toLowerCase();
 
-  // 🔴 UUDISED ERAND
+  // 🔴 UUDISED / PÄEVAKAJA ERAND
   if (
     (station.name === "R2" || station.name === "Raadio Tallinn") &&
-    normalizedTitle.includes("uudised")
+    (normalizedTitle.includes("uudised") || normalizedTitle.includes("päevakaja"))
   ) {
     return "/images/uudised.png";
   }
