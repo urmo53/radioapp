@@ -23,7 +23,14 @@
   --dynamic-1: rgba(76, 146, 255, 0.10);
   --dynamic-2: rgba(155, 193, 255, 0.08);
   --dynamic-detail: rgba(255,255,255,0.45);
-  --mini-player-bg: rgba(255,255,255,0.86);
+  --mini-player-bg: rgba(255,255,255,0.88);
+  --bottom-fade: linear-gradient(
+    to top,
+    rgba(248,249,251,1) 0%,
+    rgba(248,249,251,0.92) 22%,
+    rgba(248,249,251,0.62) 45%,
+    rgba(248,249,251,0) 100%
+  );
 }
 
 body.dark {
@@ -39,7 +46,14 @@ body.dark {
   --dynamic-1: rgba(77, 163, 255, 0.12);
   --dynamic-2: rgba(18, 90, 200, 0.16);
   --dynamic-detail: rgba(6, 16, 34, 0.55);
-  --mini-player-bg: rgba(7, 17, 31, 0.88);
+  --mini-player-bg: rgba(7, 17, 31, 0.90);
+  --bottom-fade: linear-gradient(
+    to top,
+    rgba(7,17,31,1) 0%,
+    rgba(7,17,31,0.94) 22%,
+    rgba(7,17,31,0.66) 45%,
+    rgba(7,17,31,0) 100%
+  );
 }
 
 html, body {
@@ -68,7 +82,7 @@ body {
 .page {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 18px 20px 120px;
+  padding: 18px 20px 150px;
 }
 
 .hero {
@@ -91,7 +105,7 @@ body.dark .hero {
   font-size: 32px;
   font-weight: 800;
   letter-spacing: -0.03em;
-  transition: font-size 0.22s ease, transform 0.22s ease, opacity 0.22s ease;
+  transition: font-size 0.22s ease, opacity 0.22s ease;
 }
 
 body.scrolled .hero {
@@ -120,7 +134,7 @@ body.scrolled .hero h1 {
   border: 1px solid var(--card-border);
   box-shadow: var(--shadow);
   cursor: pointer;
-  transition: transform 0.24s ease, box-shadow 0.24s ease, background 0.24s ease;
+  transition: transform 0.24s ease, box-shadow 0.24s ease, background 0.24s ease, filter 0.24s ease, opacity 0.24s ease;
   touch-action: pan-y;
 }
 
@@ -173,6 +187,7 @@ body.dark .img-wrapper {
   overflow: hidden;
 }
 
+/* DETAIL */
 .detail {
   display: none;
   max-width: 980px;
@@ -360,7 +375,19 @@ audio {
   display: none;
 }
 
-/* bottom mini player */
+/* bottom fade over content */
+.bottom-fade {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 150px;
+  z-index: 29;
+  pointer-events: none;
+  background: var(--bottom-fade);
+}
+
+/* mini player */
 .mini-player {
   position: fixed;
   left: 14px;
@@ -371,12 +398,12 @@ audio {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border-radius: 22px;
+  border-radius: 24px;
   background: var(--mini-player-bg);
   border: 1px solid var(--card-border);
   box-shadow: var(--shadow-strong);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .mini-player.show {
@@ -390,6 +417,7 @@ audio {
   overflow: hidden;
   flex: 0 0 auto;
   background: #dcdce1;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.10);
 }
 
 body.dark .mini-player-art {
@@ -406,6 +434,7 @@ body.dark .mini-player-art {
 .mini-player-copy {
   min-width: 0;
   flex: 1;
+  cursor: pointer;
 }
 
 .mini-player-name {
@@ -426,22 +455,28 @@ body.dark .mini-player-art {
 .mini-player-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.mini-btn {
+.mini-stop {
   border: none;
-  background: transparent;
-  color: var(--text);
-  font-size: 18px;
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  width: 38px;
+  min-width: 56px;
   height: 38px;
+  padding: 0 14px;
   border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(13, 118, 255, 0.26);
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
-.mini-btn:hover {
-  background: rgba(127,127,127,0.12);
+.mini-stop:hover {
+  background: var(--accent-hover);
+  transform: scale(1.03);
 }
 
 @media (max-width: 980px) {
@@ -456,7 +491,7 @@ body.dark .mini-player-art {
 }
 
 @media (max-width: 500px) {
-  .page { padding: 14px 12px 110px; }
+  .page { padding: 14px 12px 118px; }
   .hero h1 { font-size: 28px; }
   body.scrolled .hero h1 { font-size: 20px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -473,8 +508,10 @@ body.dark .mini-player-art {
   .player-status-wrap { margin-bottom: 18px; justify-content: center; }
   .back { width: 74px; height: 74px; font-size: 13px; }
   .detail-note { font-size: 13px; }
-  .mini-player { left: 10px; right: 10px; bottom: 10px; padding: 9px 10px; }
+  .bottom-fade { height: 132px; }
+  .mini-player { left: 10px; right: 10px; bottom: 10px; padding: 9px 10px; border-radius: 20px; }
   .mini-player-art { width: 48px; height: 48px; }
+  .mini-stop { min-width: 52px; height: 34px; font-size: 10px; padding: 0 12px; }
 }
 </style>
 </head>
@@ -520,16 +557,20 @@ body.dark .mini-player-art {
   </div>
 </div>
 
+<div class="bottom-fade" aria-hidden="true"></div>
+
 <div id="miniPlayer" class="mini-player">
   <div class="mini-player-art">
     <img id="miniArt" alt="">
   </div>
-  <div class="mini-player-copy" onclick="openCurrentDetail()" style="cursor:pointer;">
+
+  <div id="miniOpenArea" class="mini-player-copy">
     <div id="miniName" class="mini-player-name"></div>
     <div id="miniTitle" class="mini-player-title"></div>
   </div>
+
   <div class="mini-player-actions">
-    <button id="miniToggle" class="mini-btn" aria-label="Play/Pause">⏸</button>
+    <button id="miniStop" class="mini-stop" aria-label="Stop">STOP</button>
   </div>
 </div>
 
@@ -548,7 +589,8 @@ const miniPlayer = document.getElementById("miniPlayer");
 const miniArt = document.getElementById("miniArt");
 const miniName = document.getElementById("miniName");
 const miniTitle = document.getElementById("miniTitle");
-const miniToggle = document.getElementById("miniToggle");
+const miniOpenArea = document.getElementById("miniOpenArea");
+const miniStop = document.getElementById("miniStop");
 
 let shouldBePlaying = false;
 let reconnectTimer = null;
@@ -653,7 +695,6 @@ function updateMiniPlayer() {
   miniArt.alt = s.name;
   miniName.textContent = s.name;
   miniTitle.textContent = s.title || "";
-  miniToggle.textContent = audio.paused ? "▶" : "⏸";
 
   miniPlayer.classList.add("show");
 }
@@ -686,10 +727,26 @@ async function startStream(station, isReconnect = false) {
   updateMiniPlayer();
 }
 
-function stopRecovery() {
+function stopPlayback(resetCurrent = false) {
   shouldBePlaying = false;
   reconnectAttempts = 0;
   clearReconnectTimer();
+
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
+
+  setStatus("Peatatud");
+
+  if ("mediaSession" in navigator && "playbackState" in navigator.mediaSession) {
+    navigator.mediaSession.playbackState = "paused";
+  }
+
+  if (resetCurrent) {
+    current = null;
+  }
+
+  updateMiniPlayer();
 }
 
 async function load() {
@@ -792,20 +849,12 @@ function updateDetail() {
     });
 
     navigator.mediaSession.setActionHandler("pause", () => {
-      stopRecovery();
-      audio.pause();
-      setStatus("Peatatud");
-      updateMiniPlayer();
+      stopPlayback(false);
     });
 
     try {
       navigator.mediaSession.setActionHandler("stop", () => {
-        stopRecovery();
-        audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
-        setStatus("Peatatud");
-        updateMiniPlayer();
+        stopPlayback(false);
       });
     } catch {}
 
@@ -828,20 +877,13 @@ function back() {
   updateMiniPlayer();
 }
 
-miniToggle.addEventListener("click", async (e) => {
+miniOpenArea.addEventListener("click", () => {
+  openCurrentDetail();
+});
+
+miniStop.addEventListener("click", (e) => {
   e.stopPropagation();
-
-  if (!current) return;
-
-  if (audio.paused) {
-    shouldBePlaying = true;
-    await startStream(current, true);
-  } else {
-    stopRecovery();
-    audio.pause();
-    setStatus("Peatatud");
-    updateMiniPlayer();
-  }
+  stopPlayback(false);
 });
 
 audio.addEventListener("playing", () => {
