@@ -31,6 +31,9 @@
     rgba(248,249,251,0.62) 45%,
     rgba(248,249,251,0) 100%
   );
+
+  --detail-text: #111111;
+  --detail-text-secondary: rgba(17,17,17,0.72);
 }
 
 body.dark {
@@ -54,6 +57,9 @@ body.dark {
     rgba(7,17,31,0.66) 45%,
     rgba(7,17,31,0) 100%
   );
+
+  --detail-text: #edf4ff;
+  --detail-text-secondary: rgba(237,244,255,0.78);
 }
 
 html, body {
@@ -267,6 +273,7 @@ body.dark .detail-art-wrap {
 
 .detail-copy {
   text-align: left;
+  color: var(--detail-text);
 }
 
 .detail-label {
@@ -284,14 +291,17 @@ body.dark .detail-art-wrap {
   line-height: 0.95;
   font-weight: 800;
   letter-spacing: -0.05em;
+  color: var(--detail-text);
+  text-shadow: 0 2px 18px rgba(0,0,0,0.10);
 }
 
 #title {
   margin: 0 0 10px;
   font-size: 20px;
   line-height: 1.35;
-  color: var(--text-secondary);
+  color: var(--detail-text-secondary);
   font-weight: 500;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.08);
 }
 
 .player-status-wrap {
@@ -304,7 +314,7 @@ body.dark .detail-art-wrap {
 .player-status {
   margin: 0;
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--detail-text-secondary);
 }
 
 .live-waves {
@@ -367,7 +377,7 @@ body.dark .detail-art-wrap {
 
 .detail-note {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--detail-text-secondary);
   font-weight: 500;
 }
 
@@ -458,7 +468,7 @@ body.dark .mini-player-art {
   gap: 10px;
 }
 
-.mini-stop {
+.mini-toggle {
   border: none;
   background: var(--accent);
   color: white;
@@ -466,7 +476,7 @@ body.dark .mini-player-art {
   font-weight: 800;
   letter-spacing: 0.08em;
   cursor: pointer;
-  min-width: 56px;
+  min-width: 58px;
   height: 38px;
   padding: 0 14px;
   border-radius: 999px;
@@ -474,7 +484,7 @@ body.dark .mini-player-art {
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
-.mini-stop:hover {
+.mini-toggle:hover {
   background: var(--accent-hover);
   transform: scale(1.03);
 }
@@ -511,7 +521,7 @@ body.dark .mini-player-art {
   .bottom-fade { height: 132px; }
   .mini-player { left: 10px; right: 10px; bottom: 10px; padding: 9px 10px; border-radius: 20px; }
   .mini-player-art { width: 48px; height: 48px; }
-  .mini-stop { min-width: 52px; height: 34px; font-size: 10px; padding: 0 12px; }
+  .mini-toggle { min-width: 54px; height: 34px; font-size: 10px; padding: 0 12px; }
 }
 </style>
 </head>
@@ -570,7 +580,7 @@ body.dark .mini-player-art {
   </div>
 
   <div class="mini-player-actions">
-    <button id="miniStop" class="mini-stop" aria-label="Stop">STOP</button>
+    <button id="miniToggle" class="mini-toggle" aria-label="Play/Stop">PLAY</button>
   </div>
 </div>
 
@@ -590,7 +600,7 @@ const miniArt = document.getElementById("miniArt");
 const miniName = document.getElementById("miniName");
 const miniTitle = document.getElementById("miniTitle");
 const miniOpenArea = document.getElementById("miniOpenArea");
-const miniStop = document.getElementById("miniStop");
+const miniToggle = document.getElementById("miniToggle");
 
 let shouldBePlaying = false;
 let reconnectTimer = null;
@@ -612,6 +622,11 @@ updateScrollHeader();
 function setStatus(text, isLive = false) {
   if (playerStatus) playerStatus.textContent = text;
   if (liveWaves) liveWaves.classList.toggle("active", isLive);
+}
+
+function setMiniToggleLabel() {
+  if (!miniToggle) return;
+  miniToggle.textContent = (!audio.paused && current) ? "STOP" : "PLAY";
 }
 
 function clearReconnectTimer() {
@@ -638,6 +653,19 @@ function scheduleReconnect(reason = "Katkestus") {
 
 function rgbToCss(r, g, b, a = 0.18) {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+function applyDetailTextContrast(avgBrightness) {
+  const root = document.documentElement;
+  const isBright = avgBrightness > 155;
+
+  if (isBright) {
+    root.style.setProperty("--detail-text", "#0f1728");
+    root.style.setProperty("--detail-text-secondary", "rgba(15,23,40,0.78)");
+  } else {
+    root.style.setProperty("--detail-text", "#edf4ff");
+    root.style.setProperty("--detail-text-secondary", "rgba(237,244,255,0.82)");
+  }
 }
 
 function applyDynamicThemeFromImage(imgEl) {
@@ -670,6 +698,8 @@ function applyDynamicThemeFromImage(imgEl) {
     g = Math.round(g / count);
     b = Math.round(b / count);
 
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
     const root = document.documentElement;
     root.style.setProperty("--dynamic-1", rgbToCss(r, g, b, 0.16));
     root.style.setProperty("--dynamic-2", rgbToCss(Math.max(0, r - 30), Math.max(0, g - 10), Math.min(255, b + 20), 0.18));
@@ -679,12 +709,15 @@ function applyDynamicThemeFromImage(imgEl) {
     } else {
       root.style.setProperty("--dynamic-detail", `rgba(${Math.min(255,r+100)}, ${Math.min(255,g+100)}, ${Math.min(255,b+100)}, 0.36)`);
     }
+
+    applyDetailTextContrast(brightness);
   } catch {}
 }
 
 function updateMiniPlayer() {
   if (!current) {
     miniPlayer.classList.remove("show");
+    setMiniToggleLabel();
     return;
   }
 
@@ -697,6 +730,7 @@ function updateMiniPlayer() {
   miniTitle.textContent = s.title || "";
 
   miniPlayer.classList.add("show");
+  setMiniToggleLabel();
 }
 
 async function startStream(station, isReconnect = false) {
@@ -881,9 +915,17 @@ miniOpenArea.addEventListener("click", () => {
   openCurrentDetail();
 });
 
-miniStop.addEventListener("click", (e) => {
+miniToggle.addEventListener("click", async (e) => {
   e.stopPropagation();
-  stopPlayback(false);
+
+  if (!current) return;
+
+  if (!audio.paused) {
+    stopPlayback(false);
+  } else {
+    shouldBePlaying = true;
+    await startStream(current, true);
+  }
 });
 
 audio.addEventListener("playing", () => {
