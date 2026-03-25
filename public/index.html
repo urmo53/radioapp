@@ -105,6 +105,14 @@ body {
   transition: padding 0.22s ease;
 }
 
+.hero-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+
 .hero h1 {
   margin: 0;
   font-size: 30px;
@@ -112,6 +120,47 @@ body {
   letter-spacing: -0.03em;
   opacity: 0.95;
   transition: font-size 0.22s ease, opacity 0.22s ease, transform 0.22s ease;
+}
+
+.hero-quality {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  min-width: 58px;
+  height: 34px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 0, 0, 0.18);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-quality:hover {
+  transform: translateY(-50%) scale(1.04);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.hero-quality.active {
+  background: var(--accent);
+  box-shadow: 0 10px 22px var(--accent-shadow);
+}
+
+.hero-quality.active:hover {
+  background: var(--accent-hover);
+}
+
+body.in-detail .hero-quality {
+  display: none;
 }
 
 body.scrolled .hero {
@@ -487,18 +536,10 @@ body.mobile-marquee .status-track {
 }
 
 @keyframes statusMarquee {
-  0% {
-    transform: translateX(0);
-  }
-  10% {
-    transform: translateX(0);
-  }
-  90% {
-    transform: translateX(calc(-100% + 220px));
-  }
-  100% {
-    transform: translateX(0);
-  }
+  0% { transform: translateX(0); }
+  10% { transform: translateX(0); }
+  90% { transform: translateX(calc(-100% + 220px)); }
+  100% { transform: translateX(0); }
 }
 
 .status-station {
@@ -556,14 +597,24 @@ body.mobile-marquee .status-track {
 
 @media (max-width: 500px) {
   .page { padding: 14px 12px 106px; }
+  .hero { padding-top: 14px; }
   .hero h1 { font-size: 28px; }
   body.scrolled .hero h1 { font-size: 20px; }
+
+  .hero-quality {
+    min-width: 52px;
+    height: 32px;
+    font-size: 10px;
+    padding: 0 10px;
+  }
+
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   .station { border-radius: 20px; padding: 10px; }
   .img-wrapper { border-radius: 16px; }
   .station-info { padding: 10px 2px 2px; }
   .station-name { font-size: 15px; }
   .station-title { font-size: 12px; min-height: 32px; }
+
   .detail-shell { padding: 16px; border-radius: 24px; min-height: auto; }
   .detail-back {
     top: 10px;
@@ -620,7 +671,10 @@ body.mobile-marquee .status-track {
 
 <div class="page">
   <div class="hero">
-    <h1>RadioApp</h1>
+    <div class="hero-inner">
+      <h1>RadioApp</h1>
+      <button id="qualityToggle" class="hero-quality" type="button" aria-label="Helikvaliteet">LOW</button>
+    </div>
   </div>
 
   <div id="grid" class="grid"></div>
@@ -691,12 +745,29 @@ const statusArt = document.getElementById("statusArt");
 const statusTrack = document.getElementById("statusTrack");
 const statusStation = document.getElementById("statusStation");
 const barToggleBtn = document.getElementById("barToggleBtn");
+const qualityToggle = document.getElementById("qualityToggle");
 
 let shouldBePlaying = false;
 let reconnectTimer = null;
 let reconnectAttempts = 0;
 let loadingInterval = null;
 let loadingDots = 0;
+let qualityMode = localStorage.getItem("radio_quality_mode") === "high" ? "high" : "low";
+
+const highQualityStreams = {
+  "R2": "https://icecast.err.ee/raadio2korge.mp3",
+  "R2AltPop": "https://icecast.err.ee/r2alternatiivkorge.mp3",
+  "R2Chill": "https://icecast.err.ee/r2chillkorge.mp3",
+  "R2Eesti": "https://icecast.err.ee/r2eestikorge.mp3",
+  "R2Millenium": "https://icecast.err.ee/r2music.mp3",
+  "R2Räp": "https://icecast.err.ee/r2pkorge.mp3",
+  "R2Rock": "https://icecast.err.ee/r2rockkorge.mp3",
+  "R2Pop": "https://icecast.err.ee/r2popkorge.mp3",
+  "KlaraNostalgia": "https://icecast.err.ee/klaranostalgiakorge.mp3",
+  "KlaraJazz": "https://icecast.err.ee/klarajazzkorge.mp3",
+  "R4Retro": "https://icecast.err.ee/r4retrokorge.mp3",
+  "Raadio Tallinn": "https://icecast.err.ee/raadiotallinnkorge.mp3"
+};
 
 function darkMode() {
   const h = new Date().getHours();
@@ -714,10 +785,25 @@ function updateMobileMarquee() {
   document.body.classList.toggle("mobile-marquee", isMobile);
 }
 
+function updateQualityButton() {
+  const isHigh = qualityMode === "high";
+  qualityToggle.textContent = isHigh ? "HIGH" : "LOW";
+  qualityToggle.classList.toggle("active", isHigh);
+}
+
+function getStreamForStation(station) {
+  if (!station) return "";
+  if (qualityMode === "high" && highQualityStreams[station.name]) {
+    return highQualityStreams[station.name];
+  }
+  return station.stream;
+}
+
 window.addEventListener("scroll", updateScrollHeader, { passive: true });
 window.addEventListener("resize", updateMobileMarquee);
 updateScrollHeader();
 updateMobileMarquee();
+updateQualityButton();
 
 function setStatus(text, isLive = false) {
   if (loadingInterval) {
@@ -915,13 +1001,19 @@ async function startStream(station) {
   shouldBePlaying = true;
   clearReconnectTimer();
 
-  const streamUrl = station.stream;
+  const streamUrl = getStreamForStation(station);
 
   try {
     setStatus("LOADING", false);
 
-    if (!audio.src || audio.src !== streamUrl) {
-      audio.src = streamUrl;
+    const currentSrc = audio.getAttribute("src") || "";
+
+    if (currentSrc !== streamUrl) {
+      audio.pause();
+      audio.setAttribute("src", streamUrl);
+      audio.load();
+    } else if (audio.paused) {
+      audio.load();
     }
 
     const playPromise = audio.play();
@@ -1013,6 +1105,7 @@ function openStation(s) {
   const sameStation = current && current.name === s.name;
 
   current = s;
+  document.body.classList.add("in-detail");
   document.getElementById("grid").style.display = "none";
   document.getElementById("detail").style.display = "block";
 
@@ -1090,6 +1183,7 @@ function updateDetail() {
 }
 
 function back() {
+  document.body.classList.remove("in-detail");
   document.getElementById("detail").style.display = "none";
   document.getElementById("grid").style.display = "grid";
 }
@@ -1150,6 +1244,16 @@ window.addEventListener("pageshow", () => {
 barToggleBtn.addEventListener("click", () => {
   if (!current) return;
   togglePlayback();
+});
+
+qualityToggle.addEventListener("click", async () => {
+  qualityMode = qualityMode === "low" ? "high" : "low";
+  localStorage.setItem("radio_quality_mode", qualityMode);
+  updateQualityButton();
+
+  if (current && shouldBePlaying) {
+    await startStream(current);
+  }
 });
 
 load();
