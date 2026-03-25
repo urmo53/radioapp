@@ -25,11 +25,17 @@ const stations = [
 
 function cleanTitle(raw) {
   if (!raw) return "";
-  return raw
+
+  return String(raw)
     .replace(/–|—/g, "-")
     .replace(/\(.*?\)|\[.*?\]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function hasTrackSeparator(title) {
+  const cleaned = cleanTitle(title);
+  return cleaned.includes(" - ");
 }
 
 function parseTrack(title) {
@@ -46,14 +52,14 @@ async function getITunes(track) {
   try {
     const { artist, song } = parseTrack(track);
     const term = `${artist} ${song}`.trim();
-    if (!term) return null;
+    if (!term || !artist || !song) return null;
 
     const res = await axios.get(
       `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=3`,
       { timeout: 8000 }
     );
 
-    return res.data.results[0]?.artworkUrl100?.replace("100x100", "400x400") || null;
+    return res.data?.results?.[0]?.artworkUrl100?.replace("100x100", "400x400") || null;
   } catch {
     return null;
   }
@@ -61,12 +67,16 @@ async function getITunes(track) {
 
 async function getDeezer(track) {
   try {
+    const { artist, song } = parseTrack(track);
+    const term = `${artist} ${song}`.trim();
+    if (!term || !artist || !song) return null;
+
     const res = await axios.get(
-      `https://api.deezer.com/search?q=${encodeURIComponent(track)}`,
+      `https://api.deezer.com/search?q=${encodeURIComponent(term)}`,
       { timeout: 8000 }
     );
 
-    return res.data.data[0]?.album?.cover_big || null;
+    return res.data?.data?.[0]?.album?.cover_big || null;
   } catch {
     return null;
   }
@@ -121,16 +131,35 @@ async function getArtwork(title, station) {
   const forced = getForcedImage(title, station);
   if (forced) return forced;
 
-  let img = await getITunes(title);
-  if (img) return img;
+  const normalizedTitle = cleanTitle(title);
 
-  img = await getDeezer(title);
-  if (img) return img;
-
+  // R2 eriloogika:
+  // kui pealkirjas EI OLE "Esitaja - Lugu" formaati,
+  // siis ära otsi iTunesist/Deezerist, vaid kasuta kohe R2 kodulehe pilti
   if (station.name === "R2") {
+    if (!hasTrackSeparator(normalizedTitle)) {
+      const r2img = await getR2WebsiteImage();
+      if (r2img) return r2img;
+      return station.fallbackImage;
+    }
+
+    let img = await getITunes(normalizedTitle);
+    if (img) return img;
+
+    img = await getDeezer(normalizedTitle);
+    if (img) return img;
+
     img = await getR2WebsiteImage();
     if (img) return img;
+
+    return station.fallbackImage;
   }
+
+  let img = await getITunes(normalizedTitle);
+  if (img) return img;
+
+  img = await getDeezer(normalizedTitle);
+  if (img) return img;
 
   return station.fallbackImage;
 }
