@@ -774,7 +774,6 @@ function darkMode() {
   if (h >= 19 || h < 7) document.body.classList.add("dark");
   else document.body.classList.remove("dark");
 }
-darkMode();
 
 function updateScrollHeader() {
   document.body.classList.toggle("scrolled", window.scrollY > 12);
@@ -799,11 +798,13 @@ function getStreamForStation(station) {
   return station.stream;
 }
 
-window.addEventListener("scroll", updateScrollHeader, { passive: true });
-window.addEventListener("resize", updateMobileMarquee);
-updateScrollHeader();
-updateMobileMarquee();
-updateQualityButton();
+function updatePageTitle() {
+  if (current && shouldBePlaying && !audio.paused) {
+    document.title = current.name || "RadioApp";
+  } else {
+    document.title = "RadioApp";
+  }
+}
 
 function setStatus(text, isLive = false) {
   if (loadingInterval) {
@@ -1026,6 +1027,7 @@ async function startStream(station) {
 
   setToggleLabels();
   updateStatusBar();
+  updatePageTitle();
 }
 
 function stopPlayback(resetCurrent = false) {
@@ -1049,6 +1051,7 @@ function stopPlayback(resetCurrent = false) {
 
   setToggleLabels();
   updateStatusBar();
+  updatePageTitle();
 }
 
 function togglePlayback() {
@@ -1071,6 +1074,7 @@ async function load() {
     updateDetail();
     updateStatusBar();
     setToggleLabels();
+    updatePageTitle();
   } catch (e) {
     console.log("Load error:", e);
   }
@@ -1117,6 +1121,7 @@ function openStation(s) {
 
   updateStatusBar();
   setToggleLabels();
+  updatePageTitle();
 }
 
 function updateDetail() {
@@ -1186,6 +1191,7 @@ function back() {
   document.body.classList.remove("in-detail");
   document.getElementById("detail").style.display = "none";
   document.getElementById("grid").style.display = "grid";
+  updatePageTitle();
 }
 
 audio.addEventListener("playing", () => {
@@ -1197,12 +1203,14 @@ audio.addEventListener("playing", () => {
   }
   updateStatusBar();
   setToggleLabels();
+  updatePageTitle();
 });
 
 audio.addEventListener("pause", () => {
   if (!shouldBePlaying) {
     updateStatusBar();
     setToggleLabels();
+    updatePageTitle();
     return;
   }
   scheduleReconnect();
@@ -1211,6 +1219,7 @@ audio.addEventListener("pause", () => {
   }
   updateStatusBar();
   setToggleLabels();
+  updatePageTitle();
 });
 
 audio.addEventListener("stalled", () => {
@@ -1256,6 +1265,11 @@ qualityToggle.addEventListener("click", async () => {
   }
 });
 
+darkMode();
+updateScrollHeader();
+updateMobileMarquee();
+updateQualityButton();
+updatePageTitle();
 load();
 setInterval(load, 15000);
 </script>
