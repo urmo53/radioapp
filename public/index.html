@@ -5,12 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RadioApp</title>
 
-<link rel="icon" type="image/png" sizes="512x512" href="/images/appicon-512.png">
-<link rel="apple-touch-icon" href="/images/appicon-512.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0a84ff">
-
 <link rel="preconnect" href="https://icecast.err.ee" crossorigin>
 
 <style>
@@ -755,6 +749,7 @@ const qualityToggle = document.getElementById("qualityToggle");
 
 let shouldBePlaying = false;
 let reconnectTimer = null;
+let reconnectAttempts = 0;
 let loadingInterval = null;
 let loadingDots = 0;
 let qualityMode = localStorage.getItem("radio_quality_mode") === "high" ? "high" : "low";
@@ -776,7 +771,11 @@ const highQualityStreams = {
 
 function darkMode() {
   const h = new Date().getHours();
-  document.body.classList.toggle("dark", h >= 19 || h < 7);
+  if (h >= 19 || h < 7) {
+    document.body.classList.add("dark");
+  } else {
+    document.body.classList.remove("dark");
+  }
 }
 
 function updateScrollHeader() {
@@ -828,13 +827,23 @@ function setStatus(text, isLive = false) {
     if (detailStatus) detailStatus.textContent = text;
   }
 
-  if (liveWaves) liveWaves.classList.toggle("active", isLive);
+  if (liveWaves) {
+    liveWaves.classList.toggle("active", isLive);
+  }
 }
 
 function setToggleLabels() {
   const label = (!audio.paused && current) ? "STOP" : "PLAY";
   playToggle.textContent = label;
   barToggleBtn.textContent = label;
+}
+
+function restartStatusMarqueeIfNeeded() {
+  if (document.body.classList.contains("mobile-marquee")) {
+    statusTrack.style.animation = "none";
+    void statusTrack.offsetWidth;
+    statusTrack.style.animation = "";
+  }
 }
 
 function updateStatusBar() {
@@ -844,21 +853,15 @@ function updateStatusBar() {
   }
 
   const s = cache[current.name] || current;
-  const img = s.artwork || ("/images/" + s.name.toLowerCase() + ".png");
-  const trackText = s.title || "Peatatud";
+  const img = s.artwork || "/images/" + s.name.toLowerCase() + ".png";
 
   statusArt.src = img;
   statusArt.alt = s.name;
-  statusTrack.textContent = trackText;
+  statusTrack.textContent = s.title || "Peatatud";
   statusStation.textContent = s.name;
 
   statusBar.classList.add("show");
-
-  if (document.body.classList.contains("mobile-marquee")) {
-    statusTrack.style.animation = "none";
-    void statusTrack.offsetWidth;
-    statusTrack.style.animation = "";
-  }
+  restartStatusMarqueeIfNeeded();
 }
 
 function clearReconnectTimer() {
@@ -868,8 +871,38 @@ function clearReconnectTimer() {
   }
 }
 
-function scheduleReconnect() {
+function stopPlaybackForInterruption() {
+  shouldBePlaying = false;
+  reconnectAttempts = 0;
   clearReconnectTimer();
+
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
+
+  setStatus("STOPPED", false);
+
+  if ("mediaSession" in navigator && "playbackState" in navigator.mediaSession) {
+    navigator.mediaSession.playbackState = "paused";
+  }
+
+  setToggleLabels();
+  updateStatusBar();
+  updatePageTitle();
+}
+
+function scheduleReconnect() {
+  if (!current || !shouldBePlaying) return;
+  if (reconnectTimer) return;
+
+  reconnectAttempts += 1;
+  const delay = Math.min(700 * reconnectAttempts, 3000);
+  setStatus("LOADING", false);
+
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    stopPlaybackForInterruption();
+  }, delay);
 }
 
 function rgbToCss(r, g, b, a = 0.18) {
@@ -877,23 +910,26 @@ function rgbToCss(r, g, b, a = 0.18) {
 }
 
 function applyGradientOverlay(r, g, b, brightness) {
+  const root = document.documentElement;
   const isBright = brightness > 160;
 
   if (isBright) {
-    document.documentElement.style.setProperty("--overlay-top", "rgba(255,255,255,0.08)");
-    document.documentElement.style.setProperty("--overlay-middle", "rgba(12,18,30,0.22)");
-    document.documentElement.style.setProperty("--overlay-bottom", "rgba(4,8,18,0.72)");
+    root.style.setProperty("--overlay-top", "rgba(255,255,255,0.08)");
+    root.style.setProperty("--overlay-middle", "rgba(12,18,30,0.22)");
+    root.style.setProperty("--overlay-bottom", "rgba(4,8,18,0.72)");
   } else {
-    document.documentElement.style.setProperty("--overlay-top", "rgba(255,255,255,0.05)");
-    document.documentElement.style.setProperty("--overlay-middle", "rgba(10,18,32,0.24)");
-    document.documentElement.style.setProperty("--overlay-bottom", "rgba(4,8,18,0.78)");
+    root.style.setProperty("--overlay-top", "rgba(255,255,255,0.05)");
+    root.style.setProperty("--overlay-middle", "rgba(10,18,32,0.24)");
+    root.style.setProperty("--overlay-bottom", "rgba(4,8,18,0.78)");
   }
 
-  document.documentElement.style.setProperty("--detail-text", "#ffffff");
-  document.documentElement.style.setProperty("--detail-text-secondary", "rgba(255,255,255,0.84)");
+  root.style.setProperty("--detail-text", "#ffffff");
+  root.style.setProperty("--detail-text-secondary", "rgba(255,255,255,0.84)");
 }
 
 function applyDynamicAccent(r, g, b, brightness) {
+  const root = document.documentElement;
+
   const redDominant = r > g + 25 && r > b + 25;
   const blueDominant = b > r + 20 && b > g + 10;
   const greenDominant = g > r + 20 && g > b + 10;
@@ -901,41 +937,41 @@ function applyDynamicAccent(r, g, b, brightness) {
 
   if (veryBright) {
     if (redDominant) {
-      document.documentElement.style.setProperty("--accent", "#ff5a52");
-      document.documentElement.style.setProperty("--accent-hover", "#e44840");
-      document.documentElement.style.setProperty("--accent-shadow", "rgba(255, 90, 82, 0.34)");
+      root.style.setProperty("--accent", "#ff5a52");
+      root.style.setProperty("--accent-hover", "#e44840");
+      root.style.setProperty("--accent-shadow", "rgba(255, 90, 82, 0.34)");
     } else {
-      document.documentElement.style.setProperty("--accent", "#3f95ff");
-      document.documentElement.style.setProperty("--accent-hover", "#1f7ef5");
-      document.documentElement.style.setProperty("--accent-shadow", "rgba(63, 149, 255, 0.34)");
+      root.style.setProperty("--accent", "#3f95ff");
+      root.style.setProperty("--accent-hover", "#1f7ef5");
+      root.style.setProperty("--accent-shadow", "rgba(63, 149, 255, 0.34)");
     }
     return;
   }
 
   if (redDominant) {
-    document.documentElement.style.setProperty("--accent", "#ff5a52");
-    document.documentElement.style.setProperty("--accent-hover", "#e44840");
-    document.documentElement.style.setProperty("--accent-shadow", "rgba(255, 90, 82, 0.34)");
+    root.style.setProperty("--accent", "#ff5a52");
+    root.style.setProperty("--accent-hover", "#e44840");
+    root.style.setProperty("--accent-shadow", "rgba(255, 90, 82, 0.34)");
     return;
   }
 
   if (blueDominant) {
-    document.documentElement.style.setProperty("--accent", "#64b0ff");
-    document.documentElement.style.setProperty("--accent-hover", "#459eff");
-    document.documentElement.style.setProperty("--accent-shadow", "rgba(100, 176, 255, 0.34)");
+    root.style.setProperty("--accent", "#64b0ff");
+    root.style.setProperty("--accent-hover", "#459eff");
+    root.style.setProperty("--accent-shadow", "rgba(100, 176, 255, 0.34)");
     return;
   }
 
   if (greenDominant) {
-    document.documentElement.style.setProperty("--accent", "#38d86a");
-    document.documentElement.style.setProperty("--accent-hover", "#2fc25f");
-    document.documentElement.style.setProperty("--accent-shadow", "rgba(56, 216, 106, 0.32)");
+    root.style.setProperty("--accent", "#38d86a");
+    root.style.setProperty("--accent-hover", "#2fc25f");
+    root.style.setProperty("--accent-shadow", "rgba(56, 216, 106, 0.32)");
     return;
   }
 
-  document.documentElement.style.setProperty("--accent", "#64b0ff");
-  document.documentElement.style.setProperty("--accent-hover", "#459eff");
-  document.documentElement.style.setProperty("--accent-shadow", "rgba(100, 176, 255, 0.34)");
+  root.style.setProperty("--accent", "#64b0ff");
+  root.style.setProperty("--accent-hover", "#459eff");
+  root.style.setProperty("--accent-shadow", "rgba(100, 176, 255, 0.34)");
 }
 
 function applyDynamicThemeFromImage(imgEl) {
@@ -973,59 +1009,16 @@ function applyDynamicThemeFromImage(imgEl) {
     applyDynamicAccent(r, g, b, brightness);
     applyGradientOverlay(r, g, b, brightness);
 
-    document.documentElement.style.setProperty("--dynamic-1", rgbToCss(r, g, b, 0.16));
-    document.documentElement.style.setProperty("--dynamic-2", rgbToCss(Math.max(0, r - 30), Math.max(0, g - 10), Math.min(255, b + 20), 0.18));
+    const root = document.documentElement;
+    root.style.setProperty("--dynamic-1", rgbToCss(r, g, b, 0.16));
+    root.style.setProperty("--dynamic-2", rgbToCss(Math.max(0, r - 30), Math.max(0, g - 10), Math.min(255, b + 20), 0.18));
 
     if (document.body.classList.contains("dark")) {
-      document.documentElement.style.setProperty("--dynamic-detail", `rgba(${Math.max(0, r - 80)}, ${Math.max(0, g - 80)}, ${Math.max(0, b - 80)}, 0.28)`);
+      root.style.setProperty("--dynamic-detail", `rgba(${Math.max(0,r-80)}, ${Math.max(0,g-80)}, ${Math.max(0,b-80)}, 0.28)`);
     } else {
-      document.documentElement.style.setProperty("--dynamic-detail", `rgba(${Math.min(255, r + 100)}, ${Math.min(255, g + 100)}, ${Math.min(255, b + 100)}, 0.18)`);
+      root.style.setProperty("--dynamic-detail", `rgba(${Math.min(255,r+100)}, ${Math.min(255,g+100)}, ${Math.min(255,b+100)}, 0.18)`);
     }
   } catch {}
-}
-
-function setMediaSessionData(s, img) {
-  if (!("mediaSession" in navigator)) return;
-
-  navigator.mediaSession.metadata = new MediaMetadata({
-    title: s.title,
-    artist: s.name,
-    album: "RadioApp",
-    artwork: [
-      { src: img, sizes: "96x96", type: "image/png" },
-      { src: img, sizes: "128x128", type: "image/png" },
-      { src: img, sizes: "192x192", type: "image/png" },
-      { src: img, sizes: "256x256", type: "image/png" },
-      { src: img, sizes: "384x384", type: "image/png" },
-      { src: img, sizes: "512x512", type: "image/png" }
-    ]
-  });
-
-  navigator.mediaSession.setActionHandler("play", async () => {
-    shouldBePlaying = true;
-    await startStream(current || s);
-  });
-
-  navigator.mediaSession.setActionHandler("pause", () => {
-    stopPlayback(false);
-  });
-
-  try {
-    navigator.mediaSession.setActionHandler("stop", () => {
-      stopPlayback(false);
-    });
-  } catch {}
-
-  try {
-    navigator.mediaSession.setActionHandler("seekbackward", null);
-    navigator.mediaSession.setActionHandler("seekforward", null);
-    navigator.mediaSession.setActionHandler("previoustrack", null);
-    navigator.mediaSession.setActionHandler("nexttrack", null);
-  } catch {}
-
-  if ("playbackState" in navigator.mediaSession) {
-    navigator.mediaSession.playbackState = shouldBePlaying && !audio.paused ? "playing" : "paused";
-  }
 }
 
 async function startStream(station) {
@@ -1055,8 +1048,7 @@ async function startStream(station) {
       await playPromise;
     }
   } catch {
-    shouldBePlaying = false;
-    setStatus("STOPPED", false);
+    scheduleReconnect();
   }
 
   setToggleLabels();
@@ -1066,6 +1058,7 @@ async function startStream(station) {
 
 function stopPlayback(resetCurrent = false) {
   shouldBePlaying = false;
+  reconnectAttempts = 0;
   clearReconnectTimer();
 
   audio.pause();
@@ -1102,7 +1095,9 @@ async function load() {
   try {
     const res = await fetch("/api/stations");
     stations = await res.json();
-    stations.forEach(s => cache[s.name] = s);
+    stations.forEach(s => {
+      cache[s.name] = s;
+    });
     render();
     updateDetail();
     updateStatusBar();
@@ -1121,7 +1116,7 @@ function render() {
     const d = document.createElement("div");
     d.className = "station";
 
-    const img = s.artwork || ("/images/" + s.name.toLowerCase() + ".png");
+    const img = s.artwork || "/images/" + s.name.toLowerCase() + ".png";
 
     d.innerHTML = `
       <div class="img-wrapper">
@@ -1163,7 +1158,7 @@ function updateDetail() {
   const s = cache[current.name];
   if (!s) return;
 
-  const img = s.artwork || ("/images/" + s.name.toLowerCase() + ".png");
+  const img = s.artwork || "/images/" + s.name.toLowerCase() + ".png";
 
   document.getElementById("name").textContent = s.name;
   document.getElementById("title").textContent = s.title;
@@ -1177,7 +1172,46 @@ function updateDetail() {
   probe.onload = () => applyDynamicThemeFromImage(probe);
   probe.src = img;
 
-  setMediaSessionData(s, img);
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: s.title,
+      artist: s.name,
+      album: "RadioApp",
+      artwork: [
+        { src: img, sizes: "96x96", type: "image/png" },
+        { src: img, sizes: "192x192", type: "image/png" },
+        { src: img, sizes: "400x400", type: "image/png" },
+        { src: img, sizes: "512x512", type: "image/png" }
+      ]
+    });
+
+    navigator.mediaSession.setActionHandler("play", async () => {
+      shouldBePlaying = true;
+      await startStream(current || s);
+    });
+
+    navigator.mediaSession.setActionHandler("pause", () => {
+      stopPlayback(false);
+    });
+
+    try {
+      navigator.mediaSession.setActionHandler("stop", () => {
+        stopPlayback(false);
+      });
+    } catch {}
+
+    try {
+      navigator.mediaSession.setActionHandler("seekbackward", null);
+      navigator.mediaSession.setActionHandler("seekforward", null);
+      navigator.mediaSession.setActionHandler("previoustrack", null);
+      navigator.mediaSession.setActionHandler("nexttrack", null);
+    } catch {}
+
+    if ("playbackState" in navigator.mediaSession) {
+      navigator.mediaSession.playbackState = shouldBePlaying && !audio.paused ? "playing" : "paused";
+    }
+  }
+
   setToggleLabels();
 }
 
@@ -1189,6 +1223,7 @@ function back() {
 }
 
 audio.addEventListener("playing", () => {
+  reconnectAttempts = 0;
   clearReconnectTimer();
   setStatus("LIVE", true);
 
@@ -1202,70 +1237,42 @@ audio.addEventListener("playing", () => {
 });
 
 audio.addEventListener("pause", () => {
-  clearReconnectTimer();
-
-  if (shouldBePlaying) {
-    shouldBePlaying = false;
-    setStatus("STOPPED", false);
-  }
-
-  if ("mediaSession" in navigator && "playbackState" in navigator.mediaSession) {
-    navigator.mediaSession.playbackState = "paused";
-  }
-
-  updateStatusBar();
-  setToggleLabels();
-  updatePageTitle();
-});
-
-audio.addEventListener("stalled", () => {
-  clearReconnectTimer();
-  shouldBePlaying = false;
-  setStatus("STOPPED", false);
-  updateStatusBar();
-  setToggleLabels();
-  updatePageTitle();
-});
-
-audio.addEventListener("ended", () => {
-  clearReconnectTimer();
-  shouldBePlaying = false;
-  setStatus("STOPPED", false);
-  updateStatusBar();
-  setToggleLabels();
-  updatePageTitle();
-});
-
-audio.addEventListener("emptied", () => {
-  clearReconnectTimer();
-  shouldBePlaying = false;
-  setStatus("STOPPED", false);
-  updateStatusBar();
-  setToggleLabels();
-  updatePageTitle();
-});
-
-audio.addEventListener("error", () => {
-  clearReconnectTimer();
-  shouldBePlaying = false;
-  setStatus("STOPPED", false);
-  updateStatusBar();
-  setToggleLabels();
-  updatePageTitle();
-});
-
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) {
+  if (!shouldBePlaying) {
     updateStatusBar();
     setToggleLabels();
     updatePageTitle();
+    return;
+  }
+
+  stopPlaybackForInterruption();
+});
+
+audio.addEventListener("stalled", () => {
+  stopPlaybackForInterruption();
+});
+
+audio.addEventListener("ended", () => {
+  stopPlaybackForInterruption();
+});
+
+audio.addEventListener("emptied", () => {
+  stopPlaybackForInterruption();
+});
+
+audio.addEventListener("error", () => {
+  stopPlaybackForInterruption();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && current && !audio.paused) {
+    stopPlaybackForInterruption();
   }
 });
 
 window.addEventListener("pageshow", () => {
-  updateStatusBar();
-  setToggleLabels();
   updatePageTitle();
+  setToggleLabels();
+  updateStatusBar();
 });
 
 barToggleBtn.addEventListener("click", () => {
