@@ -771,11 +771,8 @@ const highQualityStreams = {
 
 function darkMode() {
   const h = new Date().getHours();
-  if (h >= 19 || h < 7) {
-    document.body.classList.add("dark");
-  } else {
-    document.body.classList.remove("dark");
-  }
+  if (h >= 19 || h < 7) document.body.classList.add("dark");
+  else document.body.classList.remove("dark");
 }
 
 function updateScrollHeader() {
@@ -783,7 +780,8 @@ function updateScrollHeader() {
 }
 
 function updateMobileMarquee() {
-  document.body.classList.toggle("mobile-marquee", window.innerWidth <= 500);
+  const isMobile = window.innerWidth <= 500;
+  document.body.classList.toggle("mobile-marquee", isMobile);
 }
 
 function updateQualityButton() {
@@ -827,23 +825,13 @@ function setStatus(text, isLive = false) {
     if (detailStatus) detailStatus.textContent = text;
   }
 
-  if (liveWaves) {
-    liveWaves.classList.toggle("active", isLive);
-  }
+  if (liveWaves) liveWaves.classList.toggle("active", isLive);
 }
 
 function setToggleLabels() {
   const label = (!audio.paused && current) ? "STOP" : "PLAY";
-  playToggle.textContent = label;
-  barToggleBtn.textContent = label;
-}
-
-function restartStatusMarqueeIfNeeded() {
-  if (document.body.classList.contains("mobile-marquee")) {
-    statusTrack.style.animation = "none";
-    void statusTrack.offsetWidth;
-    statusTrack.style.animation = "";
-  }
+  if (playToggle) playToggle.textContent = label;
+  if (barToggleBtn) barToggleBtn.textContent = label;
 }
 
 function updateStatusBar() {
@@ -854,14 +842,20 @@ function updateStatusBar() {
 
   const s = cache[current.name] || current;
   const img = s.artwork || "/images/" + s.name.toLowerCase() + ".png";
+  const trackText = s.title || "Peatatud";
 
   statusArt.src = img;
   statusArt.alt = s.name;
-  statusTrack.textContent = s.title || "Peatatud";
+  statusTrack.textContent = trackText;
   statusStation.textContent = s.name;
 
   statusBar.classList.add("show");
-  restartStatusMarqueeIfNeeded();
+
+  if (document.body.classList.contains("mobile-marquee")) {
+    statusTrack.style.animation = "none";
+    void statusTrack.offsetWidth;
+    statusTrack.style.animation = "";
+  }
 }
 
 function clearReconnectTimer() {
@@ -869,26 +863,6 @@ function clearReconnectTimer() {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
-}
-
-function stopPlaybackForInterruption() {
-  shouldBePlaying = false;
-  reconnectAttempts = 0;
-  clearReconnectTimer();
-
-  audio.pause();
-  audio.removeAttribute("src");
-  audio.load();
-
-  setStatus("STOPPED", false);
-
-  if ("mediaSession" in navigator && "playbackState" in navigator.mediaSession) {
-    navigator.mediaSession.playbackState = "paused";
-  }
-
-  setToggleLabels();
-  updateStatusBar();
-  updatePageTitle();
 }
 
 function scheduleReconnect() {
@@ -901,7 +875,7 @@ function scheduleReconnect() {
 
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
-    stopPlaybackForInterruption();
+    startStream(current);
   }, delay);
 }
 
@@ -1095,9 +1069,7 @@ async function load() {
   try {
     const res = await fetch("/api/stations");
     stations = await res.json();
-    stations.forEach(s => {
-      cache[s.name] = s;
-    });
+    stations.forEach(s => cache[s.name] = s);
     render();
     updateDetail();
     updateStatusBar();
@@ -1226,11 +1198,9 @@ audio.addEventListener("playing", () => {
   reconnectAttempts = 0;
   clearReconnectTimer();
   setStatus("LIVE", true);
-
   if ("mediaSession" in navigator && "playbackState" in navigator.mediaSession) {
     navigator.mediaSession.playbackState = "playing";
   }
-
   updateStatusBar();
   setToggleLabels();
   updatePageTitle();
@@ -1243,36 +1213,41 @@ audio.addEventListener("pause", () => {
     updatePageTitle();
     return;
   }
-
-  stopPlaybackForInterruption();
+  scheduleReconnect();
+  if ("mediaSession" in navigator && "playbackState" in navigator.mediaSession) {
+    navigator.mediaSession.playbackState = "paused";
+  }
+  updateStatusBar();
+  setToggleLabels();
+  updatePageTitle();
 });
 
 audio.addEventListener("stalled", () => {
-  stopPlaybackForInterruption();
+  scheduleReconnect();
 });
 
 audio.addEventListener("ended", () => {
-  stopPlaybackForInterruption();
+  scheduleReconnect();
 });
 
 audio.addEventListener("emptied", () => {
-  stopPlaybackForInterruption();
+  scheduleReconnect();
 });
 
 audio.addEventListener("error", () => {
-  stopPlaybackForInterruption();
+  scheduleReconnect();
 });
 
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden && current && !audio.paused) {
-    stopPlaybackForInterruption();
+  if (!document.hidden && current && shouldBePlaying && audio.paused) {
+    startStream(current);
   }
 });
 
 window.addEventListener("pageshow", () => {
-  updatePageTitle();
-  setToggleLabels();
-  updateStatusBar();
+  if (current && shouldBePlaying && audio.paused) {
+    startStream(current);
+  }
 });
 
 barToggleBtn.addEventListener("click", () => {
@@ -1289,9 +1264,6 @@ qualityToggle.addEventListener("click", async () => {
     await startStream(current);
   }
 });
-
-window.addEventListener("scroll", updateScrollHeader, { passive: true });
-window.addEventListener("resize", updateMobileMarquee);
 
 darkMode();
 updateScrollHeader();
